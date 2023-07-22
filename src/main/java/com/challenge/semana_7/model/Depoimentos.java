@@ -6,15 +6,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-@Entity
+@Entity()
 public class Depoimentos {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
+    @Column(name = "nome")
     private String nome;
-    @Column
+    @Column(name = "depoimento")
     private String depoimento;
     @Column(name = "foto")
     private String fotoPath;

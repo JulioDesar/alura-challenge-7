@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 @RestController
 @RequestMapping("/depoimentos")
 public class DepoimentosController {
@@ -20,6 +24,11 @@ public class DepoimentosController {
     @GetMapping
     public ResponseEntity<Iterable<GetDepoimentosDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
+    }
+
+    @GetMapping("/depoimentos-home")
+    public ResponseEntity<Iterable<GetDepoimentosDto>> getDepoimentos() {
+        return ResponseEntity.ok(service.getThreeDepoimentos());
     }
 
     @GetMapping("/{id}")

@@ -4,9 +4,6 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.util.IOUtils;
 import com.challenge.semana_7.dto.GetDepoimentosDto;
 import com.challenge.semana_7.dto.UploadDepoimentosDto;
 import com.challenge.semana_7.model.Depoimentos;
@@ -21,6 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -46,6 +46,15 @@ public class DepoimentoService {
         return depoimentosDtoList;
     }
 
+    public Iterable<GetDepoimentosDto> getThreeDepoimentos() {
+        Iterable<GetDepoimentosDto> allIterable = getAll();
+        List<GetDepoimentosDto> list = new ArrayList<>();
+        allIterable.forEach(list::add);
+        Collections.shuffle(list);
+        allIterable = list.subList(0, 3);
+        return allIterable;
+    }
+
     public GetDepoimentosDto getById(Long id) {
         Depoimentos depoimentos = depoimentoRepository.findById(id).get();
         return new GetDepoimentosDto(depoimentos.getId(), depoimentos.getNome(), depoimentos.getDepoimento(), depoimentos.getFotoPath());
@@ -54,9 +63,7 @@ public class DepoimentoService {
     public UploadDepoimentosDto save(UploadDepoimentosDto dp, MultipartFile fotos) {
         try {
             String fileName = System.currentTimeMillis() + "_" + fotos.getOriginalFilename();
-            String filePath = uploadFileToS3(fileName, fotos);
-
-            Depoimentos depoimentoSalvo = depoimentoRepository.save(new Depoimentos(null, dp.nome(), dp.depoimento(), filePath));
+            Depoimentos depoimentoSalvo = depoimentoRepository.save(new Depoimentos(null, dp.nome(), dp.depoimento(), uploadFileToS3(fileName, fotos)));
             UploadDepoimentosDto dpDto = new UploadDepoimentosDto(depoimentoSalvo.getNome(), depoimentoSalvo.getDepoimento(), depoimentoSalvo.getFotoPath());
 
             return dpDto;
@@ -115,17 +122,6 @@ public class DepoimentoService {
         s3Client.deleteObject(deleteObjectRequest);
     }
 
-    public byte[] downloadFile(String keyName) {
-        S3Object s3Object = s3Client.getObject(bucketName, keyName);
-        S3ObjectInputStream inputStream = s3Object.getObjectContent();
-        try {
-            return IOUtils.toByteArray(inputStream);
-        } catch (Exception e) {
-            log.error("Erro ao baixar arquivo", e);
-        }
-        return null;
-    }
-
     private File convertMultiPartFileToFile(MultipartFile file) {
         File convertedFile = new File(file.getOriginalFilename());
         try (FileOutputStream fos = new FileOutputStream(convertedFile)) {
@@ -142,7 +138,6 @@ public class DepoimentoService {
             s3Client.putObject(new PutObjectRequest(bucketName, fileName, fileObj));
             fileObj.delete();
             return "https://s3." + s3Client.getRegionName() + ".amazonaws.com/" + bucketName + "/" + fileName;
-            //https://s3.region-code.amazonaws.com/bucket-name/key-name
         } catch (Exception e) {
             log.error("Erro ao enviar o arquivo para o s3", e);
             return null;
